@@ -29,6 +29,6 @@
                    <unarni_izraz>
                     <postfiks_izraz>
                      <primarni_izraz>
-                      IDN 2 x
+                      NIZ_ZNAKOVA 2 "\a\b\c"
        TOCKAZAREZ 2 ;
     D_VIT_ZAGRADA 3 }

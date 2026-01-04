@@ -10,10 +10,23 @@
    D_ZAGRADA 1 )
    <slozena_naredba>
     L_VIT_ZAGRADA 1 {
+    <lista_deklaracija>
+     <deklaracija>
+      <ime_tipa>
+       <specifikator_tipa>
+        KR_INT 2 int
+      <lista_init_deklaratora>
+       <init_deklarator>
+        <izravni_deklarator>
+         IDN 2 f
+         L_ZAGRADA 2 (
+         KR_VOID 2 void
+         D_ZAGRADA 2 )
+      TOCKAZAREZ 2 ;
     <lista_naredbi>
      <naredba>
       <naredba_skoka>
-       KR_RETURN 2 return
+       KR_RETURN 3 return
        <izraz>
         <izraz_pridruzivanja>
          <log_ili_izraz>
@@ -28,7 +41,10 @@
                   <cast_izraz>
                    <unarni_izraz>
                     <postfiks_izraz>
-                     <primarni_izraz>
-                      IDN 2 x
-       TOCKAZAREZ 2 ;
-    D_VIT_ZAGRADA 3 }
+                     <postfiks_izraz>
+                      <primarni_izraz>
+                       IDN 3 f
+                     L_ZAGRADA 3 (
+                     D_ZAGRADA 3 )
+       TOCKAZAREZ 3 ;
+    D_VIT_ZAGRADA 4 }
