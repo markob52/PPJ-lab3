@@ -1,4 +1,5 @@
 import node
+from tabzn import TablicaZnakova
 class Identifikator:
     def __init__(self, uvijet_identifikacije, svojstva:list, provjeri):
         self.uvijet_identifikacije = uvijet_identifikacije
@@ -6,12 +7,9 @@ class Identifikator:
         self.provjeri = provjeri
 
 
-tablica_znakova = {
-
-}
-trenutni_blok = {}
-identifikatori = []
+tablica_znakova = TablicaZnakova()
 main_postoji = False
+identifikatori = []
 
 '''
 <primarni_izraz> ::= IDN
@@ -27,7 +25,7 @@ def uvj_1(n:node.Node) -> bool:
         return n.dijeca[0].vrijednost =="IDN"
     return False
 def prov_1(n:node.Node) -> bool:
-    if not ("ime" in n.dijeca[0].svojstva.keys()):
+    if not tablica_znakova.testiraj(n.dijeca[0].svojstva["ime"]):
         return False
     n.svojstva["tip"]=n.dijeca[0].svojstva["tip"]
     n.svojstva["l-izraz"]=n.dijeca[0].svojstva["l-izraz"]
@@ -53,7 +51,7 @@ def uvj_2(n:node.Node) -> bool:
     return False
 def prov_2(n:node.Node) -> bool:
     try:
-        if not (int(n.dijeca[0].kod) < 2147483648 and int(n.dijeca[0].kod) >= -2147483648):
+        if not (2147483648 > int(n.dijeca[0].kod) >= -2147483648):
             return False
     except:
         return False
