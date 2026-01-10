@@ -7,11 +7,52 @@ class Identifikator:
         self.provjeri = provjeri
 
 
+def greska(n:node.Node):
+    print(f"{n.vrijednost} ::=",end="")
+    for dijete in n.djeca:
+        if dijete.vrijednost.startsWith("<"):
+            print(f" {dijete.vrijednost}")
+        else:
+            print(f" {dijete.vrijednost}({dijete.linija},{dijete.kod})")
+    print("")
+    sys.exit(0)
+
 tablica_znakova = TablicaZnakova()
 main_postoji = False
 identifikatori = []
 ASCII = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm0123456789,./!?@#$%^&*()[]{}_+-?>=<:;`~| "
 IDE_IZA_BACKSLASH = "tn0\'\"\\"
+unutar = []
+
+'''
+[const_int , int, const_char, char] ~ [int, const_int]
+[const_char, char] ~ [char, const_char]
+[niz_char, niz_int] ~ [niz_int, niz_const_int]
+[niz_char, niz_int, niz_const_char,niz_const_int] ~ [niz_const_int]
+ima jos
+'''
+
+
+def check_impl(str1, str2):
+    impl_konverzija = \
+        {
+            ('const_int', 'int'),
+            ('int', 'const_int'),
+            ('char', 'const_char'),
+            ('const_char', 'char'),
+            ('char', 'int'),
+            ('char', 'const_int'),
+            ('const_char', 'int'),
+            ('const_char', 'const_int'),
+            ('niz_int', 'niz_const_int'),
+            ('niz_char', 'niz_const_char'),
+            ('niz_char', 'niz_int'),
+            ('niz_char', 'niz_const_char'),
+         }
+    if (str1, str2) in impl_konverzija:
+        return True
+    return str1 == str2
+
 '''
 <primarni_izraz> ::= IDN
 tip ← IDN.tip
@@ -22,14 +63,17 @@ l-izraz ← IDN.l-izraz
 def uvj_1(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.dijeca) == 1:
-        return n.dijeca[0].vrijednost =="IDN"
-    return False
-def prov_1(n:node.Node) -> bool:
-    if not tablica_znakova.testiraj(n.dijeca[0].svojstva["ime"]):
+    if len(n.djeca) == 1:
         return False
-    n.svojstva["tip"]=n.dijeca[0].svojstva["tip"]
-    n.svojstva["l-izraz"]=n.dijeca[0].svojstva["l-izraz"]
+    if n.djeca[0].vrijednost != "IDN":
+        return False
+    return True
+def prov_1(n:node.Node) -> bool:
+    if not tablica_znakova.testiraj(n.djeca[0].kod):
+        greska(n)
+        return False
+    n.svojstva["tip"]=n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"]=n.djeca[0].svojstva["l-izraz"]
     return True
 identifikatori.append(Identifikator(
     uvj_1,
@@ -47,16 +91,21 @@ l-izraz ← 0
 def uvj_2(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.dijeca) == 1:
-        return n.dijeca[0].vrijednost =="BROJ"
-    return False
+    if len(n.djeca) != 1:
+        return False
+    if not n.djeca[0].vrijednost =="BROJ":
+        return False
+    return True
 def prov_2(n:node.Node) -> bool:
     try:
-        if not (2147483648 > int(n.dijeca[0].kod) >= -2147483648):
+        if not (2147483648 > int(n.djeca[0].kod) >= -2147483648):
+            greska(n)
             return False
     except:
+        greska(n)
         return False
     if n.svojstva["vrijednost"] :
+        greska(n)
         return False
     n.svojstva["tip"] = "int"
     n.svojstva["l-izraz"] = 0
@@ -77,13 +126,16 @@ l-izraz ← 0
 def uvj_3(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.dijeca) == 1:
-        return n.dijeca[0].vrijednost =="ZNAK"
-    return False
+    if len(n.djeca) == 1:
+        return False
+    if n.djeca[0].vrijednost !="ZNAK":
+        return False
+    return True
 def prov_3(n:node.Node) -> bool:
-    znak = n.djeca[0].kod
+    znak = n.djeca[0].vrijednost
     if (znak[1] not in ASCII) and (not (znak[1] == "\\" and (znak[2] in IDE_IZA_BACKSLASH) and len(znak)==4)):
-                return False
+        greska(n)
+        return False
     n.svojstva["tip"] = "char"
     n.svojstva["l-izraz"] = 0
     return True
@@ -104,12 +156,15 @@ l-izraz ← 0
 def uvj_4(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.dijeca) == 1:
-        return n.dijeca[0].vrijednost =="NIZ_ZNAKOVA"
-    return False
+    if len(n.djeca) == 1:
+        return False
+    if n.djeca[0].vrijednost !="NIZ_ZNAKOVA":
+        return False
+    return True
 def prov_4(n:node.Node) -> bool:
-    string = n.dijeca[0].kod
+    string = n.djeca[0].kod
     if not (string[0] == "\"" and string[-1] == "\""):
+        greska(n)
         return False
     i = 1
     while i < len(string) - 1:
@@ -126,6 +181,7 @@ def prov_4(n:node.Node) -> bool:
                 i += 1
             else:
                 #print(string[i], "je nevazeci znak")
+                greska(n)
                 return False
 
     n.svojstva["tip"] = "niz_const_char"
@@ -148,14 +204,17 @@ l-izraz ← <izraz>.l-izraz
 def uvj_5(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.dijeca) == 1:
-        return n.dijeca[0].vrijednost =="L_ZAGRADA <izraz> D_ZAGRADA"
-    return False
-def prov_5(n:node.Node) -> bool:
-    provjera = n.dijeca[1].identifikator.provjeri(n.dijeca[1])
-    if not provjera:
+    if len(n.djeca) == 1:
         return False
-    n.svojstva["tip"] = n.dijeca[1].svojstva["tip"]
+    if not n.djeca[0].vrijednost =="L_ZAGRADA <izraz> D_ZAGRADA":
+        return False
+    return True
+def prov_5(n:node.Node) -> bool:
+    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[1].svojstva["tip"]
     n.svojstva["l-izraz"] = 0
     return True
 
@@ -177,20 +236,23 @@ l-izraz ← <primarni_izraz>.l-izraz
 def uvj_6(n:node.Node) -> bool:
     if n.vrijednost != '<postfix_izraz>':
         return False
-    if len(n.dijeca) == 1:
-        return n.dijeca[0].vrijednost == "<primarni_izraz>"
-    return False
-def prov_6(n:node.Node) -> bool:
-    provjera = n.dijeca[0].identifikator.provjeri(n.dijeca[0])
-    if not provjera:
+    if len(n.djeca) == 1:
         return False
-    n.svojstva["tip"] = n.dijeca[0].svojstva["tip"]
-    n.svojstva["l-izraz"] = n.dijeca[0].svojstva["l-izraz"]
+    if not n.djeca[0].vrijednost == "<primarni_izraz>":
+        return False
+    return True
+def prov_6(n:node.Node) -> bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
     return True
 
 identifikatori.append(Identifikator(
     uvj_6,
-    ["tip"],
+    ["tip", "l-izraz"],
     prov_6
 ))
 
@@ -206,23 +268,36 @@ l-izraz ← X 6= const(T)
 def uvj_7(n:node.Node) -> bool:
     if n.vrijednost != "<postfiks_izraz>":
         return False
-    elif len(n.dijeca) != 4:
+    elif len(n.djeca) != 4:
         return False
-    elif n.dijeca[0].vrijednost != "<postfiks_izraz>":
+    elif n.djeca[0].vrijednost != "<postfiks_izraz>":
         return False
-    elif n.dijeca[1].vrijednost != "L_UGL_ZAGRADA":
+    elif n.djeca[1].vrijednost != "L_UGL_ZAGRADA":
         return False
-    elif n.dijeca[2].vrijednost != "<izraz>":
+    elif n.djeca[2].vrijednost != "<izraz>":
         return False
-    elif n.dijeca[3].vrijednost != "D_UGL_ZAGRADA":
+    elif n.djeca[3].vrijednost != "D_UGL_ZAGRADA":
         return False
     return True
 def prov_7(n:node.Node) -> bool:
-    if not n.dijeca[0].identifikator.provjeri(n.dijeca[0]):
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
         return False
-    n.dijeca[0].identifikator[]
+    if not n.djeca[0].svojstva["tip"].startsWith("niz_"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
     return True
-
+identifikatori.append(Identifikator(
+    uvj_7,
+    ["tip", "l-izraz"],
+    prov_7
+))
 
 
 
@@ -237,16 +312,1991 @@ l-izraz ← 0
 def uvj_8(n:node.Node) -> bool:
     if n.vrijednost != '<postfiks_izraz>':
         return False
-    if len(n.dijeca) == 1:
-        return n.dijeca[0].vrijednost == "<postfiks_izraz> L_ZAGRADA D_ZAGRADA"
-    return False # 'asd' ()
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<postfiks_izraz>":
+        return False
+    elif n.djeca[0].vrijednost != "L_ZAGRADA:":
+        return False
+    elif n.djeca[0].vrijednost != "D_ZAGRADA:":
+        return False
+    return True
 def prov_8(n:node.Node) -> bool:
-    provjera = n.dijeca[0].identifikator.provjeri(n.dijeca[0])
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
     if not provjera:
+        greska(n)
         return False
     '''
-    funkcija_void__int
+    funkcija void  int
+    funkcija int char  int
     '''
-    if not n.dijeca[0].svojstva["tip"].startswith("funkcija_void__"):
+
+    if not n.djeca[0].svojstva["tip"].startswith("funkcija void  "):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"].strip("funkcija void  ")
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_8,
+    ["tip", "l-izraz"],
+    prov_8
+))
+
+'''
+ <postfiks_izraz> ::= <postfiks_izraz> L_ZAGRADA <lista_argumenata> D_ZAGRADA
+tip ← pov
+l-izraz ← 0
+1. provjeri(<postfiks_izraz>)
+2. provjeri(<lista_argumenata>)
+3. <postfiks_izraz>.tip = funkcija(params → pov) i redom po elementima #
+arg-tip iz <lista_argumenata>.tipovi i param-tip iz params vrijedi arg-tip
+∼ param-tip
+'''
+
+def uvj_9(n:node.Node) -> bool:
+    if n.vrijednost != '<postfiks_izraz>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<postfiks_izraz>":
+        return False
+    elif n.djeca[0].vrijednost != "L_ZAGRADA:":
+        return False
+    elif n.djeca[0].vrijednost != "<lista_argumentata>":
+        return False
+    elif n.djeca[0].vrijednost != "D_ZAGRADA:":
+        return False
+    return True
+def prov_9(n:node.Node) -> bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    provjera = n.djeca[2].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
         return False
 
+    #<postfiks_izraz>.tip = funkcija(params → pov) i redom po elementima
+    #arg-tip iz <lista_argumenata>.tipovi i param-tip iz params vrijedi
+    #arg-tip ∼ param-tip
+    lista_parametara = n.djeca[0].tip.strip("funkcija ").split()[:-1]
+    lista_argumenata = n.djeca[2].svojstva["tipovi"]
+    if len(lista_argumenata) == len(lista_parametara):
+        for i in range(len(lista_parametara)):
+            if not check_impl(lista_argumenata[i], lista_parametara[i]):
+                greska(n)
+                return False
+    else:
+        greska(n)
+        return False
+
+    pov = n.djeca[0].tip.split()[-1]
+    n.svojstva["tip"] = pov
+    n.svojstva["l-izraz"] = 0
+    return True
+
+
+identifikatori.append(Identifikator(
+    uvj_9,
+    ["tip", "l-izraz"],
+    prov_9
+))
+'''
+<postfiks_izraz> ::= <postfiks_izraz> (OP_INC | OP_DEC)
+tip ← int
+l-izraz ← 0
+1. provjeri(<postfiks_izraz>)
+2. <postfiks_izraz>.l-izraz = 1 i <postfiks_izraz>.tip ∼ int
+'''
+def uvj_10(n:node.Node) -> bool:
+    if n.vrijednost != '<postfiks_izraz>':
+        return False
+    elif len(n.djeca)!= 2:
+        return False
+    elif n.djeca[0].vrijednost != "<postfiks_izraz>":
+        return False
+    elif n.djeca[1].vrijednost not in ["OP_INC", "OP_DEC"]:
+        return False
+    return True
+def prov_10(n:node.Node) -> bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if n.djeca[0].svojstva["l-izraz"] != 1:
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_10,
+    ["tip","l-izraz"],
+    prov_10
+))
+
+'''
+<lista_argumenata> ::= <izraz_pridruzivanja>
+tipovi ← [ <izraz_pridruzivanja>.tip ]
+1. provjeri(<izraz_pridruzivanja>)
+'''
+def uvj_11(n:node.Node) -> bool:
+    if n.vrijednost != "<lista_argumenata>":
+        return False
+    elif len(n.djeca)!=1:
+        return False
+    if n.djeca[0].vrijednost != "<izraz_pridruzivanja>":
+        return False
+    return True
+def prov_11(n:node.Node) -> bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tipovi"] = [n.djeca[0].svojstva["tip"]]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_11,
+    ["tipovi"],
+    prov_11
+))
+
+
+'''
+<lista_argumenata> ::= <lista_argumenata> ZAREZ <izraz_pridruzivanja>
+tipovi ← <lista_argumenata>.tipovi + [ <izraz_pridruzivanja>.tip ]
+1. provjeri(<lista_argumenata>)
+2. provjeri(<izraz_pridruzivanja>)
+'''
+def uvj_12(n:node.Node)->bool:
+    if n.vrijednost=="<lista_argumenata>":
+        return False
+    elif len(n.djeca)!=3:
+        return False
+    elif len(n.djeca[0].vrijednost)!="<lista_argumenata>":
+        return False
+    elif n.djeca[1].vrijednost!="ZAREZ":
+        return False
+    elif n.djeca[2].vrijednost=="<izraz_pridruzivanja>":
+        return False
+    return True
+def prov_12(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    n.svojstva["tipovi"] = n.djeca[0].svojstva["tipovi"] + [n.djeca[2].svojstva["tip"]]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_12,
+    ["tipovi"],
+    prov_12
+))
+
+'''
+<unarni_izraz> ::= <postfiks_izraz>
+tip ← <postfiks_izraz>.tip
+l-izraz ← <postfiks_izraz>.l-izraz
+1. provjeri(<postfiks_izraz>)
+'''
+
+def uvj_13(n:node.Node)->bool:
+    if n.vrijednost != "<unarni_izraz>":
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    if n.djeca[0].vrijednost != "<postfix_izraz>":
+        return False
+    return True
+def prov_13(n:node.Node) -> bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_13,
+    ["tip","l-izraz"],
+    prov_13
+))
+
+'''
+<unarni_izraz> ::= (OP_INC | OP_DEC) <unarni_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<unarni_izraz>)
+2. <unarni_izraz>.l-izraz = 1 i <unarni_izraz>.tip ∼ int
+'''
+
+def uvj_14(n:node.Node) -> bool:
+    if n.vrijednost != '<unarni_izraz>':
+        return False
+    elif len(n.djeca)!= 2:
+        return False
+    elif n.djeca[0].vrijednost not in ["OP_INC", "OP_DEC"]:
+        return False
+    elif n.djeca[1].vrijednost != "<unarni_izraz>":
+        return False
+    return True
+def prov_14(n:node.Node)->bool:
+    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    if not provjera:
+        greska(n)
+        return False
+    if not n.djeca[1].svojstva["l-izraz"] == 1:
+        greska(n)
+        return False
+    if not check_impl(n.djeca[1].tip, "int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_14,
+    ["tip","l-izraz"],
+    prov_14
+))
+
+'''
+<unarni_izraz> ::= <unarni_operator> <cast_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<cast_izraz>)
+2. <cast_izraz>.tip ∼ int
+'''
+
+def uvj_15(n:node.Node) -> bool:
+    if n.vrijednost != '<unarni_izraz>':
+        return False
+    elif len(n.djeca)!= 2:
+        return False
+    elif n.djeca[0].vrijednost != "<unarni_operator>":
+        return False
+    elif n.djeca[1].vrijednost != "<cast_izraz>":
+        return False
+    return True
+def prov_15(n:node.Node)->bool:
+    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    if not provjera:
+        greska(n)
+        return False
+    if not check_impl(n.djeca[1].tip, "int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_15,
+    ["tip","l-izraz"],
+    prov_15
+))
+
+'''
+<unarni_operator>
+'''
+def uvj_16(n:node.Node)->bool:
+    if n.vrijednost != '<unarni_operator>':
+        return True
+    return False
+def prov_16(n:node.Node)->bool:
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_16,
+    [],
+    prov_16
+))
+
+'''
+<cast_izraz> ::= <unarni_izraz>
+tip ← <unarni_izraz>.tip
+l-izraz ← <unarni_izraz>.l-izraz
+1. provjeri(<unarni_izraz>)
+'''
+
+def uvj_17(n:node.Node)->bool:
+    if n.vrijednost != '<cast_izraz>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<unarni_izraz>":
+        return False
+    return True
+def prov_17(n:node.Node)->bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+identifikatori.append(Identifikator(
+    uvj_17,
+    ["tip", "l-izraz"],
+    prov_17
+))
+
+'''
+<cast_izraz> ::= L_ZAGRADA <ime_tipa> D_ZAGRADA <cast_izraz>
+tip ← <ime_tipa>.tip
+l-izraz ← 0
+1. provjeri(<ime_tipa>)
+2. provjeri(<cast_izraz>)
+3. <cast_izraz>.tip se moˇze pretvoriti u <ime_tipa>.tip po poglavlju 4.3.1
+'''
+def uvj_18(n:node.Node)->bool:
+    if n.vrijednost != '<cast_izraz>':
+        return False
+    elif len(n.djeca) != 4:
+        return False
+    elif n.djeca[0].vrijednost != "L_ZAGRADA":
+        return False
+    elif n.djeca[1].vrijednost != "<ime_tipa>":
+        return False
+    elif n.djeca[2].vrijednost != "D_ZAGRADA":
+        return False
+    elif n.djeca[3].vrijednost != "<cast_izraz>":
+        return False
+    return True
+def prov_18(n:node.Node)->bool:
+    if not n.djeca[2].identifikator.provjeri(n.djeca[1]):
+        greska(n)
+        return False
+    if not n.djeca[3].identifikator.provjeri(n.djeca[3]):
+        greska(n)
+        return False
+    if (not check_impl(n.djeca[3].svojstva["tip"],n.djeca[1].svojstva["tip"])) or (not n.djeca[1].svojstva["tip"]=='char' and n.djeca[3].svojstva["tip"]=='int') :
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[1].svojstva["tip"]
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_18,
+    ["tip","l-izraz"],
+    prov_18
+))
+
+'''
+<ime_tipa> ::= <specifikator_tipa>
+tip ← <specifikator_tipa>.tip
+1. provjeri(<specifikator_tipa>)
+'''
+
+def uvj_19(n:node.Node)->bool:
+    if n.vrijednost != '<ime_tipa>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<specifikator_tipa>":
+        return False
+    return True
+def prov_19(n:node.Node)->bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    return True
+identifikatori.append(Identifikator(
+    uvj_19,
+    ["tip"],
+    prov_19
+))
+
+'''
+<ime_tipa> ::= KR_CONST <specifikator_tipa>
+tip ← const(<specifikator_tipa>.tip)
+1. provjeri(<specifikator_tipa>)
+2. <specifikator_tipa>.tip 6= void
+'''
+
+def uvj_20(n:node.Node) -> bool:
+    if n.vrijednost != '<ime_tipa>':
+        return False
+    elif len(n.djeca)!= 2:
+        return False
+    elif n.djeca[0].vrijednost != "<KR_CONST>":
+        return False
+    elif n.djeca[1].vrijednost != "<specifikator_tipa>":
+        return False
+    return True
+def prov_20(n:node.Node)->bool:
+    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    if not provjera:
+        greska(n)
+        return False
+    if n.djeca[1].svojstva["tip"] == "void":
+        greska(n)
+        return False
+    n.svojstva["tip"] = "const" + n.djeca[1].svojstva["tip"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_20,
+    ["tip","l-izraz"],
+    prov_20
+))
+
+'''
+<specifikator_tipa> ::= KR_VOID
+tip ← void
+'''
+
+def uvj_21(n:node.Node)->bool:
+    if n.vrijednost != '<specifikator_tipa>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<KR_VOID>":
+        return False
+    return True
+def prov_21(n:node.Node)->bool:
+    n.svojstva["tip"] = "void"
+    return True
+identifikatori.append(Identifikator(
+    uvj_21,
+    ["tip"],
+    prov_21
+))
+
+'''
+<specifikator_tipa> ::= KR_CHAR
+tip ← char
+'''
+
+def uvj_22(n:node.Node)->bool:
+    if n.vrijednost != '<specifikator_tipa>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<KR_CHAR>":
+        return False
+    return True
+def prov_22(n:node.Node)->bool:
+    n.svojstva["tip"] = "char"
+    return True
+identifikatori.append(Identifikator(
+    uvj_22,
+    ["tip"],
+    prov_22
+))
+
+'''
+<specifikator_tipa> ::= KR_INT
+tip ← int
+'''
+
+def uvj_23(n:node.Node)->bool:
+    if n.vrijednost != '<specifikator_tipa>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<KR_INT>":
+        return False
+    return True
+def prov_23(n:node.Node)->bool:
+    n.svojstva["tip"] = "int"
+    return True
+identifikatori.append(Identifikator(
+    uvj_23,
+    ["tip"],
+    prov_23
+))
+
+'''
+<multiplikativni_izraz> ::= <cast_izraz>
+tip ← <cast_izraz>.tip
+l-izraz ← <cast_izraz>.l-izraz
+1. provjeri(<cast_izraz>)
+'''
+
+def uvj_24(n:node.Node)->bool:
+    if n.vrijednost != '<multiplikativni_izraz>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<cast_izraz>":
+        return False
+    return True
+def prov_24(n:node.Node)->bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+identifikatori.append(Identifikator(
+    uvj_24,
+    ["tip", "l-izraz"],
+    prov_24
+))
+
+'''
+<multiplikativni_izraz> ::= <multiplikativni_izraz> (OP_PUTA |
+OP_DIJELI | OP_MOD) <cast_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<multiplikativni_izraz>)
+2. <multiplikativni_izraz>.tip ∼ int
+3. provjeri(<cast_izraz>)
+4. <cast_izraz>.tip ∼ int
+'''
+def uvj_25(n:node.Node)->bool:
+    if n.vrijednost != '<multiplikativni_izraz>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<multiplikativni_izraz>":
+        return False
+    elif n.djeca[1].vrijednost not in ["OP_PUTA", "OP_DIJELI", "OP_MOD"]:
+        return False
+    elif n.djeca[2].vrijednost != "D_ZAGRADA":
+        return False
+    return True
+def prov_25(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_25,
+    ["tip","l-izraz"],
+    prov_25
+))
+
+
+'''
+<aditivni_izraz> ::= <multiplikativni_izraz>
+tip ← <multiplikativni_izraz>.tip
+l-izraz ← <multiplikativni_izraz>.l-izraz
+1. provjeri(<multiplikativni_izraz>)
+'''
+def uvj_26(n:node.Node)->bool:
+    if n.vrijednost != '<aditivni_izraz>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<multiplikativni_izraz>":
+        return False
+    return True
+def prov_26(n:node.Node)->bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[1])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+identifikatori.append(Identifikator(
+    uvj_26,
+    ["tip", "l-izraz"],
+    prov_26
+))
+
+'''
+<aditivni_izraz> ::= <aditivni_izraz> (PLUS | MINUS) <multiplikativni_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<aditivni_izraz>)
+2. <aditivni_izraz>.tip ∼ int
+3. provjeri(<multiplikativni_izraz>)
+4. <multiplikativni_izraz>.tip ∼ int
+'''
+def uvj_27(n:node.Node)->bool:
+    if n.vrijednost != '<aditivni_izraz>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<aditivni_izraz>":
+        return False
+    elif n.djeca[1].vrijednost not in ["PLUS", "MINUS"]:
+        return False
+    elif n.djeca[2].vrijednost != "<multiplikativni_izraz>":
+        return False
+    return True
+def prov_27(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_27,
+    ["tip","l-izraz"],
+    prov_27
+))
+
+
+'''
+<odnosni_izraz> ::= <aditivni_izraz>
+tip ← <aditivni_izraz>.tip
+l-izraz ← <aditivni_izraz>.l-izraz
+1. provjeri(<aditivni_izraz>)
+'''
+def uvj_28(n:node.Node)->bool:
+    if n.vrijednost != '<odnosni_izraz>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<aditivni_izraz>":
+        return False
+    return True
+def prov_28(n:node.Node)->bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+identifikatori.append(Identifikator(
+    uvj_28,
+    ["tip", "l-izraz"],
+    prov_28
+))
+
+'''
+<odnosni_izraz> ::= <odnosni_izraz> (OP_LT | OP_GT | OP_LTE | OP_GTE) <aditivni_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<odnosni_izraz>)
+2. <odnosni_izraz>.tip ∼ int
+3. provjeri(<aditivni_izraz>)
+4. <aditivni_izraz>.tip ∼ int
+TODO
+'''
+def uvj_29(n:node.Node)->bool:
+    if n.vrijednost != '<odnosni_izraz>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<odnosni_izraz>":
+        return False
+    elif n.djeca[1].vrijednost not in ["OP_LT", "OP_GT", "OP_LTE", "OP_GTE"]:
+        return False
+    elif n.djeca[2].vrijednost != "<aditivni_izraz>":
+        return False
+    return True
+def prov_29(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+identifikatori.append(Identifikator(
+    uvj_29,
+    ["tip", "l-izraz"],
+    prov_29
+))
+
+
+'''
+<jednakosni_izraz> ::= <odnosni_izraz>
+tip ← <odnosni_izraz>.tip
+l-izraz ← <odnosni_izraz>.l-izraz
+1. provjeri(<odnosni_izraz>)
+'''
+def uvj_30(n:node.Node)->bool:
+    if n.vrijednost != '<jednakosni_izraz>':
+        return False
+    elif len(n.djeca)!= 1:
+        return False
+    elif n.djeca[0].vrijednost != "<odnosni_izraz>":
+        return False
+    return True
+def prov_30(n:node.Node)->bool:
+    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    if not provjera:
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+identifikatori.append(Identifikator(
+    uvj_30,
+    ["tip", "l-izraz"],
+    prov_30
+))
+
+'''
+<jednakosni_izraz> ::= <jednakosni_izraz> (OP_EQ | OP_NEQ) <odnosni_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<jednakosni_izraz>)
+2. <jednakosni_izraz>.tip ∼ int
+3. provjeri(<odnosni_izraz>)
+4. <odnosni_izraz>.tip ∼ int
+TODO
+'''
+def uvj_31(n:node.Node)->bool:
+    if n.vrijednost != '<jednakosni_izraz>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<jednakosni_izraz>":
+        return False
+    elif n.djeca[1].vrijednost not in ["OP_EQ", "OP_NEQ"]:
+        return False
+    elif n.djeca[2].vrijednost != "<odnosni_izraz>":
+        return False
+    return True
+def prov_31(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_31,
+    ["tip","l-izraz"],
+    prov_31
+))
+
+'''
+<bin_i_izraz> ::= <jednakosni_izraz>
+tip ← <jednakosni_izraz>.tip
+l-izraz ← <jednakosni_izraz>.l-izraz
+1. provjeri(<jednakosni_izraz>)
+'''
+def uvj_32(n:node.Node)->bool:
+    if n.vrijednost != '<bin_i_izraz>':
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    elif n.djeca[0].vrijednost != "<jednakosni_izraz>":
+        return False
+    return True
+def prov_32(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_32,
+    ["tip","l-izraz"],
+    prov_32
+))
+
+'''
+<bin_i_izraz> ::= <bin_i_izraz> OP_BIN_I <jednakosni_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<bin_i_izraz>)
+2. <bin_i_izraz>.tip ∼ int
+3. provjeri(<jednakosni_izraz>)
+4. <jednakosni_izraz>.tip ∼ int
+'''
+
+def uvj_33(n:node.Node)->bool:
+    if n.vrijednost != '<bin_i_izraz>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<bin_i_izraz>":
+        return False
+    elif n.djeca[1].vrijednost != "OP_BIN_I":
+        return False
+    elif n.djeca[2].vrijednost != "<jednakosni_izraz>":
+        return False
+    return True
+def prov_33(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_33,
+    ["tip","l-izraz"],
+    prov_33
+))
+
+'''
+<bin_xili_izraz> ::= <bin_i_izraz>
+tip ← <bin_i_izraz>.tip
+l-izraz ← <bin_i_izraz>.l-izraz
+1. provjeri(<bin_i_izraz>)
+'''
+def uvj_34(n:node.Node)->bool:
+    if n.vrijednost != '<bin_xili_izraz>':
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    elif n.djeca[0].vrijednost != "<bin_i_izraz>":
+        return False
+    return True
+def prov_34(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_34,
+    ["tip","l-izraz"],
+    prov_34
+))
+'''
+<bin_xili_izraz> ::= <bin_xili_izraz> OP_BIN_XILI <bin_i_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<bin_xili_izraz>)
+2. <bin_xili_izraz>.tip ∼ int
+3. provjeri(<bin_i_izraz>)
+4. <bin_i_izraz>.tip ∼ int
+'''
+def uvj_35(n:node.Node)->bool:
+    if n.vrijednost != '<bin_xili_izraz>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "<bin_xili_izraz>":
+        return False
+    elif n.djeca[1].vrijednost != "OP_BIN_XILI":
+        return False
+    elif n.djeca[2].vrijednost != "<bin_i_izraz>":
+        return False
+    return True
+def prov_35(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_35,
+    ["tip","l-izraz"],
+    prov_35
+))
+
+'''
+<bin_ili_izraz> ::= <bin_xili_izraz>
+tip ← <bin_xili_izraz>.tip
+l-izraz ← <bin_xili_izraz>.l-izraz
+1. provjeri(<bin_xili_izraz>)
+'''
+def uvj_36(n:node.Node)->bool:
+    if n.vrijednost != '<bin_ili_izraz>':
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    elif n.djeca[0].vrijednost != "<bin_xili_izraz>":
+        return False
+    return True
+def prov_36(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_36,
+    ["tip","l-izraz"],
+    prov_36
+))
+
+'''
+<bin_ili_izraz> ::= <bin_ili_izraz> OP_BIN_ILI <bin_xili_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<bin_ili_izraz>)
+2. <bin_ili_izraz>.tip ∼ int
+3. provjeri(<bin_xili_izraz>)
+4. <bin_xili_izraz>.tip ∼ int
+'''
+def uvj_37(n:node.Node)->bool:
+    if n.vrijednost != '<bin_ili_izraz>':
+        greska(n)
+        return False
+    elif len(n.djeca) != 3:
+        greska(n)
+        return False
+    elif n.djeca[0].vrijednost != "<bin_ili_izraz>":
+        greska(n)
+        return False
+    elif n.djeca[1].vrijednost != "OP_BIN_ILI":
+        greska(n)
+        return False
+    elif n.djeca[2].vrijednost != "<bin_xili_izraz>":
+        greska(n)
+        return False
+    return True
+def prov_37(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_37,
+    ["tip","l-izraz"],
+    prov_37
+))
+
+'''
+<log_i_izraz> ::= <bin_ili_izraz>
+tip ← <bin_ili_izraz>.tip
+l-izraz ← <bin_ili_izraz>.l-izraz
+1. provjeri(<bin_ili_izraz>)
+'''
+def uvj_38(n:node.Node)->bool:
+    if n.vrijednost != '<log_i_izraz>':
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    elif n.djeca[0].vrijednost != "<bin_ili_izraz>":
+        return False
+    return True
+def prov_38(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_38,
+    ["tip","l-izraz"],
+    prov_38
+))
+
+'''
+<log_i_izraz> ::= <log_i_izraz> OP_I <bin_ili_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<log_i_izraz>)
+2. <log_i_izraz>.tip ∼ int
+3. provjeri(<bin_ili_izraz>)
+4. <bin_ili_izraz>.tip ∼ int
+
+'''
+def uvj_39(n:node.Node)->bool:
+    if n.vrijednost != '<log_i_izraz>':
+        greska(n)
+        return False
+    elif len(n.djeca) != 3:
+        greska(n)
+        return False
+    elif n.djeca[0].vrijednost != "<log_i_izraz>":
+        greska(n)
+        return False
+    elif n.djeca[1].vrijednost != "OP_I":
+        greska(n)
+        return False
+    elif n.djeca[2].vrijednost != "<bin_ili_izraz>":
+        greska(n)
+        return False
+    return True
+def prov_39(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_39,
+    ["tip","l-izraz"],
+    prov_39
+))
+
+'''
+<log_ili_izraz> ::= <log_i_izraz>
+tip ← <log_i_izraz>.tip
+l-izraz ← <log_i_izraz>.l-izraz
+1. provjeri(<log_i_izraz>)
+
+'''
+def uvj_40(n:node.Node)->bool:
+    if n.vrijednost != '<log_ili_izraz>':
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    elif n.djeca[0].vrijednost != "<log_i_izraz>":
+        return False
+    return True
+def prov_40(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_40,
+    ["tip","l-izraz"],
+    prov_40
+))
+
+'''
+<log_ili_izraz> ::= <log_ili_izraz> OP_ILI <log_i_izraz>
+tip ← int
+l-izraz ← 0
+1. provjeri(<log_ili_izraz>)
+2. <log_ili_izraz>.tip ∼ int
+3. provjeri(<log_i_izraz>)
+4. <log_i_izraz>.tip ∼ int
+
+'''
+def uvj_41(n:node.Node)->bool:
+    if n.vrijednost != '<log_ili_izraz>':
+        greska(n)
+        return False
+    elif len(n.djeca) != 3:
+        greska(n)
+        return False
+    elif n.djeca[0].vrijednost != "<log_ili_izraz>":
+        greska(n)
+        return False
+    elif n.djeca[1].vrijednost != "OP_ILI":
+        greska(n)
+        return False
+    elif n.djeca[2].vrijednost != "<log_i_izraz>":
+        greska(n)
+        return False
+    return True
+def prov_41(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = "int"
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_41,
+    ["tip","l-izraz"],
+    prov_41
+))
+
+'''
+<izraz_pridruzivanja> ::= <log_ili_izraz>
+tip ← <log_ili_izraz>.tip
+l-izraz ← <log_ili_izraz>.l-izraz
+1. provjeri(<log_ili_izraz>)
+'''
+def uvj_42(n:node.Node)->bool:
+    if n.vrijednost != '<izraz_pridruzivanja>':
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    elif n.djeca[0].vrijednost != "<log_ili_izraz>":
+        return False
+    return True
+def prov_42(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_42,
+    ["tip","l-izraz"],
+    prov_42
+))
+
+'''
+<izraz_pridruzivanja> ::= <postfiks_izraz> OP_PRIDRUZI <izraz_pridruzivanja>
+tip ← <postfiks_izraz>.tip
+l-izraz ← 0
+1. provjeri(<postfiks_izraz>)
+2. <postfiks_izraz>.l-izraz = 1
+3. provjeri(<izraz_pridruzivanja>)
+4. <izraz_pridruzivanja>.tip ∼ <postfiks_izraz>.tip
+'''
+def uvj_43(n:node.Node)->bool:
+    if n.vrijednost != '<izraz_pridruzivanja>':
+        greska(n)
+        return False
+    elif len(n.djeca) != 3:
+        greska(n)
+        return False
+    elif n.djeca[0].vrijednost != "<postfiks_izraz>":
+        greska(n)
+        return False
+    elif n.djeca[1].vrijednost != "OP_PRIDRUZI":
+        greska(n)
+        return False
+    elif n.djeca[2].vrijednost != "<izraz_pridruzivanja>":
+        greska(n)
+        return False
+    return True
+def prov_43(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_43,
+    ["tip","l-izraz"],
+    prov_43
+))
+
+'''
+<izraz> ::= <izraz_pridruzivanja>
+tip ← <izraz_pridruzivanja>.tip
+l-izraz ← <izraz_pridruzivanja>.l-izraz
+1. provjeri(<izraz_pridruzivanja>)
+
+'''
+def uvj_44(n:node.Node)->bool:
+    if n.vrijednost != '<izraz>':
+        return False
+    elif len(n.djeca) != 1:
+        return False
+    elif n.djeca[0].vrijednost != "<izraz_pridruzivanja>":
+        return False
+    return True
+def prov_44(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    n.svojstva["l-izraz"] = n.djeca[0].svojstva["l-izraz"]
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_44,
+    ["tip","l-izraz"],
+    prov_44
+))
+
+'''
+<izraz> ::= <izraz> ZAREZ <izraz_pridruzivanja>
+tip ← <izraz_pridruzivanja>.tip
+l-izraz ← 0
+1. provjeri(<izraz>)
+2. provjeri(<izraz_pridruzivanja>)
+'''
+def uvj_45(n:node.Node)->bool:
+    if n.vrijednost != '<izraz>':
+        greska(n)
+        return False
+    elif len(n.djeca) != 3:
+        greska(n)
+        return False
+    elif n.djeca[0].vrijednost != "<izraz>":
+        greska(n)
+        return False
+    elif n.djeca[1].vrijednost != "ZAREZ":
+        greska(n)
+        return False
+    elif n.djeca[2].vrijednost != "<izraz_pridruzivanja>":
+        greska(n)
+        return False
+    return True
+def prov_45(n:node.Node)->bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[2].svojstva["tip"]
+    n.svojstva["l-izraz"] = 0
+    return True
+
+identifikatori.append(Identifikator(
+    uvj_45,
+    ["tip","l-izraz"],
+    prov_45
+))
+
+
+
+'''
+<slozena_naredba> ::= L_VIT_ZAGRADA <lista_naredbi> D_VIT_ZAGRADA
+1. provjeri(<lista_naredbi>)
+'''
+def uvj_100(n:node.Node)->bool:
+    if n.vrijednost != '<slozena_naredba>':
+        return False
+    elif len(n.djeca) != 3:
+        return False
+    elif n.djeca[0].vrijednost != "L_VIT_ZAGRADA":
+        return False
+    elif n.djeca[1].vrijednost != "<lista_naredbi>":
+        return False
+    elif n.djeca[2].vrijednost != "D_VIT_ZAGRADA":
+        return False
+    return True
+def prov_100(n:node.Node)->bool:
+    tablica_znakova.otvori_blok()
+    if not n.djeca[1].identifikator.provjeri(n):
+        greska(n)
+        return False
+    tablica_znakova.zatvori_blok()
+    return True
+identifikatori.append(Identifikator(
+    uvj_100,
+    [],
+    prov_100
+))
+
+'''
+<slozena_naredba> ::= L_VIT_ZAGRADA <lista_deklaracija> <lista_naredbi> D_VIT_ZAGRADA
+1. provjeri(<lista_deklaracija>)
+2. provjeri(<lista_naredbi>)
+'''
+def uvj_101(n:node.Node)->bool:
+    if n.vrijednost != '<slozena_naredba>':
+        return False
+    elif len(n.djeca) != 4:
+        return False
+    elif n.djeca[0].vrijednost != "L_VIT_ZAGRADA":
+        return False
+    elif n.djeca[1].vrijednost != "<lista_deklaracija>":
+        return False
+    elif n.djeca[2].vrijednost != "<lista_naredbi>":
+        return False
+    elif n.djeca[3].vrijednost != "D_VIT_ZAGRADA":
+        return False
+    return True
+def prov_101(n:node.Node)->bool:
+    tablica_znakova.otvori_blok()
+    if not n.djeca[1].identifikator.provjeri(n):
+        greska(n)
+        return False
+    if not n.djeca[2].identifikator.provjeri(n):
+        greska(n)
+        return False
+    tablica_znakova.zatvori_blok()
+    return True
+identifikatori.append(Identifikator(
+    uvj_101,
+    [],
+    prov_101
+))
+
+
+'''
+<lista_naredbi> ::= <naredba>
+1. provjeri(<naredba>)
+'''
+def uvj_102(n:node.Node) -> bool:
+    if n.vrijednost != "<lista_naredbi>":
+        return False
+    elif len(n.djeca)!=1:
+        return False
+    if n.djeca[0].vrijednost != "<naredba>":
+        return False
+    return True
+def prov_102(n:node.Node) -> bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_102,
+    [],
+    prov_102
+))
+
+'''
+<lista_naredbi> ::= <lista_naredbi> <naredba>
+1. provjeri(<lista_naredbi>)
+2. provjeri(<naredba>)
+'''
+def uvj_103(n:node.Node) -> bool:
+    if n.vrijednost != "<lista_naredbi>":
+        return False
+    elif len(n.djeca)!=2:
+        return False
+    elif n.djeca[0].vrijednost != "<lista_naredbi>":
+        return False
+    elif n.djeca[1].vrijednost != "<naredba>":
+        return False
+    return True
+def prov_103(n:node.Node) -> bool:
+    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if not n.djeca[1].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_103,
+    [],
+    prov_103
+))
+
+'''
+<naredba>
+provjera(prvi)
+'''
+def uvj_104(n:node.Node)->bool:
+    if n.vrijednost != "<naredba>":
+        return False
+    if len(n.djeca)!=1:
+        return False
+    if n.djeca[0].vrijednost not in ["<slozena_naredba>","<izraz_naredba>", "<naredba_grananja>", "<naredba_petlje>", "<naredba_skoka>"]:
+        return False
+    return True
+def prov_104(n:node.Node)->bool:
+    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_104,
+    [],
+    prov_104
+))
+
+
+'''
+<izraz_naredba> ::= TOCKAZAREZ
+tip ← int
+'''
+def uvj_105(n:node.Node)->bool:
+    if n.vrijednost != "<izraz_naredba>":
+        return False
+    if len(n.djeca) != 1:
+        return False
+    if n.djeca[0].vrijednost != "TOCKAZAREZ":
+        return False
+    return True
+def prov_105(n:node.Node)->bool:
+    n.svojstva["tip"] = "int"
+    return True
+identifikatori.append(Identifikator(
+    uvj_105,
+    ["tip"],
+    prov_105
+))
+
+'''
+<izraz_naredba> ::= <izraz> TOCKAZAREZ
+tip ← <izraz>.tip
+1. provjeri(<izraz>)
+'''
+def uvj_106(n:node.Node)->bool:
+    if n.vrijednost != "<izraz_naredba>":
+        return False
+    if len(n.djeca) != 2:
+        return False
+    if n.djeca[0].vrijednost != "<izraz>":
+        return False
+    if n.djeca[1].vrijednost != "TOCKAZAREZ":
+        return False
+    return True
+def prov_106(n:node.Node)->bool:
+    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
+    return True
+identifikatori.append(Identifikator(
+    uvj_106,
+    ["tip"],
+    prov_106
+))
+
+'''
+<naredba_grananja> ::= KR_IF L_ZAGRADA <izraz> D_ZAGRADA <naredba>
+1. provjeri(<izraz>)
+2. <izraz>.tip ∼ int
+3. provjeri(<naredba>)
+'''
+def uvj_107(n:node.Node)->bool:
+    if n.vrijednost != "<izraz_naredba>":
+        return False
+    if len(n.djeca) != 5:
+        return False
+    if n.djeca[0].vrijednost != "KR_IF":
+        return False
+    if n.djeca[1].vrijednost != "L_ZAGRADA":
+        return False
+    if n.djeca[2].vrijednost != "<izraz>":
+        return False
+    if n.djeca[3].vrijednost != "D_ZAGRADA":
+        return False
+    if n.djeca[4].vrijednost != "<naredba>":
+        return False
+    return True
+def prov_107(n:node.Node)->bool:
+    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"], "int"):
+        return False
+    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+        greska(n)
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_107,
+    [],
+    prov_107
+))
+'''
+<naredba_grananja> ::= KR_IF L_ZAGRADA <izraz> D_ZAGRADA <naredba>1
+KR_ELSE <naredba>2
+1. provjeri(<izraz>)
+2. <izraz>.tip ∼ int
+3. provjeri(<naredba>1)
+4. provjeri(<naredba>2)
+
+'''
+def uvj_108(n:node.Node)->bool:
+    if n.vrijednost != "<naredba_grananja>":
+        return False
+    if len(n.djeca) != 7:
+        return False
+    if n.djeca[0].vrijednost != "KR_IF":
+        return False
+    if n.djeca[1].vrijednost != "L_ZAGRADA":
+        return False
+    if n.djeca[2].vrijednost != "<izraz>":
+        return False
+    if n.djeca[3].vrijednost != "D_ZAGRADA":
+        return False
+    if n.djeca[4].vrijednost != "<naredba>":
+        return False
+    if n.djeca[5].vrijednost != "KR_ELSE":
+        return False
+    if n.djeca[6].vrijednost != "<naredba>":
+        return False
+    return True
+def prov_108(n:node.Node)->bool:
+    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"], "int"):
+        greska(n)
+        return False
+    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+        greska(n)
+        return False
+    if n.djeca[6].identifikator.provjeri(n.djeca[6]):
+        greska(n)
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_108,
+    [],
+    prov_108
+))
+
+'''
+<naredba_petlje> ::= KR_WHILE L_ZAGRADA <izraz> D_ZAGRADA <naredba>
+1. provjeri(<izraz>)
+2. <izraz>.tip ∼ int
+3. provjeri(<naredba>)
+
+'''
+def uvj_109(n:node.Node)->bool:
+    if n.vrijednost != "<naredba_grananja>":
+        return False
+    if len(n.djeca) != 5:
+        return False
+    if n.djeca[0].vrijednost != "KR_WHILE":
+        return False
+    if n.djeca[1].vrijednost != "L_ZAGRADA":
+        return False
+    if n.djeca[2].vrijednost != "<izraz>":
+        return False
+    if n.djeca[3].vrijednost != "D_ZAGRADA":
+        return False
+    if n.djeca[4].vrijednost != "<naredba>":
+        return False
+    return True
+def prov_109(n:node.Node)->bool:
+    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[2].svojstva["tip"], "int"):
+        greska(n)
+        return False
+    unutar.append('loop')
+    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+        greska(n)
+        return False
+    unutar.pop()
+    return True
+identifikatori.append(Identifikator(
+    uvj_109,
+    [],
+    prov_109
+))
+
+'''
+<naredba_petlje> ::= KR_FOR L_ZAGRADA <izraz_naredba>1 <izraz_naredba>2
+D_ZAGRADA <naredba>
+1. provjeri(<izraz_naredba>1)
+2. provjeri(<izraz_naredba>2)
+3. <izraz_naredba>2.tip ∼ int
+4. provjeri(<naredba>)
+
+'''
+def uvj_110(n:node.Node)->bool:
+    if n.vrijednost != "<naredba_grananja>":
+        return False
+    if len(n.djeca) != 7:
+        return False
+    if n.djeca[0].vrijednost != "KR_FOR":
+        return False
+    if n.djeca[1].vrijednost != "L_ZAGRADA":
+        return False
+    if n.djeca[2].vrijednost != "<izraz_naredba>":
+        return False
+    if n.djeca[3].vrijednost != "<izraz_naredba>":
+        return False
+    if n.djeca[4].vrijednost != "<izraz>":
+        return False
+    if n.djeca[5].vrijednost != "D_ZAGRADA":
+        return False
+    if n.djeca[6].vrijednost != "<naredba>":
+        return False
+    return True
+def prov_110(n:node.Node)->bool:
+    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if n.djeca[3].identifikator.provjeri(n.djeca[3]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[3].svojstva["tip"], "int"):
+        greska(n)
+        return False
+    unutar.append("loop")
+    if n.djeca[6].identifikator.provjeri(n.djeca[7]):
+        greska(n)
+        return False
+    unutar.pop()
+    return True
+identifikatori.append(Identifikator(
+    uvj_110,
+    [],
+    prov_110
+))
+
+'''
+<naredba_petlje> ::= KR_FOR L_ZAGRADA <izraz_naredba>1 <izraz_naredba>2
+<izraz> D_ZAGRADA <naredba>
+1. provjeri(<izraz_naredba>1)
+2. provjeri(<izraz_naredba>2)
+3. <izraz_naredba>2.tip ∼ int
+4. provjeri(<izraz>)
+5. provjeri(<naredba>)
+'''
+def uvj_110(n:node.Node)->bool:
+    if n.vrijednost != "<naredba_grananja>":
+        return False
+    if len(n.djeca) != 7:
+        return False
+    if n.djeca[0].vrijednost != "KR_FOR":
+        return False
+    if n.djeca[1].vrijednost != "L_ZAGRADA":
+        return False
+    if n.djeca[2].vrijednost != "<izraz_naredba>":
+        return False
+    if n.djeca[3].vrijednost != "<izraz_naredba>":
+        return False
+    if n.djeca[4].vrijednost != "<izraz>":
+        return False
+    if n.djeca[5].vrijednost != "D_ZAGRADA":
+        return False
+    if n.djeca[6].vrijednost != "<naredba>":
+        return False
+    return True
+def prov_110(n:node.Node)->bool:
+    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    if n.djeca[3].identifikator.provjeri(n.djeca[3]):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[3].svojstva["tip"], "int"):
+        greska(n)
+        return False
+    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+        greska(n)
+        return False
+    unutar.append("loop")
+    if n.djeca[6].identifikator.provjeri(n.djeca[6]):
+        greska(n)
+        return False
+    unutar.pop()
+    return True
+identifikatori.append(Identifikator(
+    uvj_110,
+    [],
+    prov_110
+))
+
+'''
+<naredba_skoka> ::= (KR_CONTINUE | KR_BREAK) TOCKAZAREZ
+1. naredba se nalazi unutar petlje ili unutar bloka koji je ugnijeˇzden u petlji
+'''
+def uvj_111(n:node.Node)->bool:
+    if n.vrijednost != "<izraz_naredba>":
+        return False
+    if len(n.djeca) != 2:
+        return False
+    if n.djeca[0].vrijednost not in ["KR_CONTINUE", "KR_BREAK"]:
+        return False
+    if n.djeca[1].vrijednost != "TOCKAZAREZ":
+        return False
+    return True
+def prov_111(n:node.Node)->bool:
+    if not unutar[-1] == "loop":
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_111,
+    [],
+    prov_111
+))
+
+
+'''
+<naredba_skoka> ::= KR_RETURN TOCKAZAREZ
+1. naredba se nalazi unutar funkcije tipa funkcija(params → void)
+'''
+def uvj_112(n:node.Node)->bool:
+    if n.vrijednost != "<izraz_naredba>":
+        return False
+    if len(n.djeca) != 2:
+        return False
+    if n.djeca[0].vrijednost != "KR_RETURN":
+        return False
+    if n.djeca[1].vrijednost != "TOCKAZAREZ":
+        return False
+    return True
+def prov_112(n:node.Node)->bool:
+    if not unutar[-1] == "void":
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_112,
+    [],
+    prov_112
+))
+'''
+<naredba_skoka> ::= KR_RETURN <izraz> TOCKAZAREZ
+1. provjeri(<izraz>)
+2. naredba se nalazi unutar funkcije tipa funkcija(params → pov) i vrijedi
+<izraz>.tip ∼ pov
+'''
+def uvj_113(n:node.Node)->bool:
+    if n.vrijednost != "<izraz_naredba>":
+        return False
+    if len(n.djeca) != 3:
+        return False
+    if n.djeca[0].vrijednost != "KR_RETURN":
+        return False
+    if n.djeca[1].vrijednost != "<izraz>":
+        return False
+    if n.djeca[2].vrijednost != "TOCKAZAREZ":
+        return False
+    return True
+def prov_113(n:node.Node)->bool:
+    if not (unutar[-1] != "void" and unutar[-1] != "loop") or not check_impl(n.djeca[1].svojstva["tip"], unutar[-1]):
+        return False
+    return True
+identifikatori.append(Identifikator(
+    uvj_113,
+    [],
+    prov_113
+))
+
+
+#deklaracije i definicije
+'''
+<definicija_funkcije> ::= <ime_tipa> IDN L_ZAGRADA KR_VOID D_ZAGRADA
+<slozena_naredba>
+1. provjeri(<ime_tipa>)
+2. <ime_tipa>.tip 6= const(T)
+3. ne postoji prije definirana funkcija imena IDN.ime
+4. ako postoji deklaracija imena IDN.ime u globalnom djelokrugu onda je pripadni
+tip te deklaracije funkcija(void → <ime_tipa>.tip)
+5. zabiljeˇzi definiciju i deklaraciju funkcije
+6. provjeri(<slozena_naredba>)
+'''
+
+def uvj_200(n:node.Node)-> bool:
+    if n.vrijednost != '<definicija_funkcije>':
+        return False
+    elif len(n.djeca) != 6:
+        return False
+    elif n.djeca[0].vrijednost != "<ime_tipa>":
+        return False
+    elif n.djeca[1].vrijednost != "IDN":
+        return False
+    elif n.djeca[2].vrijednost != "L_ZAGRADA":
+        return False
+    elif n.djeca[3].vrijednost != "KR_VOID":
+        return False
+    elif n.djeca[4].vrijednost != "D_ZAGRADA":
+        return False
+    elif n.djeca[5].vrijednost != "<slozena_naredba>":
+        return False
+    return True
+def prov_200(n:node.Node)->bool:
+    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if n.djeca[0].svojstva["tip"].startswith("const_"):
+        greska(n)
+        return False
+    podaci = tablica_znakova.testiraj(n.djeca[1].kod)
+    if podaci:
+        if podaci.get("isDefined",False):
+            greska(n)
+            return False
+    podaci_globalnog = tablica_znakova.get_root().testiraj(n.djeca[1].kod)
+    if podaci_globalnog:
+        globalni_tip = podaci.get("tip")
+        if not globalni_tip.startswith("funkcija void  "):
+            greska(n)
+            return False
+        if globalni_tip.split()[-1] != n.djeca[0].svojstva["tip"]:
+            greska(n)
+            return False
+        podaci_globalnog["isDefined"] = True
+        tablica_znakova.get_root().promjena(n.djeca[1].kod,podaci_globalnog)
+    else:
+        if not podaci:
+            tablica_znakova.dodajZnak(n.djeca[1].kod, {
+                "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
+                "l-value": 0,
+                "isDefined": True
+            })
+        else:
+            tablica_znakova.dodajZnak(n.djeca[1].kod, {
+                "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
+                "l-value": 0,
+                "isDefined": True
+            })
+    unutar.append(n.djeca[0].svojstva["tip"])
+    if not n.djeca[5].identifikator.provjeri(n.djeca[5]):
+        greska(n)
+        return False
+    unutar.pop()
+    return True
+identifikatori.append(Identifikator(
+    uvj_200,
+    [],
+    prov_200
+))
+
+'''
+<definicija_funkcije> ::= <ime_tipa> IDN L_ZAGRADA <lista_parametara> D_ZAGRADA
+<slozena_naredba>
+1. provjeri(<ime_tipa>)
+2. <ime_tipa>.tip 6= const(T)
+3. ne postoji prije definirana funkcija imena IDN.ime
+4. provjeri(<lista_parametara>)
+5. ako postoji deklaracija imena IDN.ime u globalnom djelokrugu onda je pripadni
+tip te deklaracije funkcija(<lista_parametara>.tipovi → <ime_tipa>.tip)
+6. zabiljeˇzi definiciju i deklaraciju funkcije
+7. provjeri(<slozena_naredba>) uz parametre funkcije koriste´ci <lista_parametara>.tipovi
+i <lista_parametara>.imena.
+'''
+def uvj_200(n:node.Node)-> bool:
+    if n.vrijednost != '<definicija_funkcije>':
+        return False
+    elif len(n.djeca) != 6:
+        return False
+    elif n.djeca[0].vrijednost != "<ime_tipa>":
+        return False
+    elif n.djeca[1].vrijednost != "IDN":
+        return False
+    elif n.djeca[2].vrijednost != "L_ZAGRADA":
+        return False
+    elif n.djeca[3].vrijednost != "<lista_parametara>":
+        return False
+    elif n.djeca[4].vrijednost != "D_ZAGRADA":
+        return False
+    elif n.djeca[5].vrijednost != "<slozena_naredba>":
+        return False
+    return True
+def prov_200(n:node.Node)->bool:
+    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+        greska(n)
+        return False
+    if n.djeca[0].svojstva["tip"].startswith("const_"):
+        greska(n)
+        return False
+    podaci = tablica_znakova.testiraj(n.djeca[1].kod)
+    if podaci:
+        if podaci.get("isDefined",False):
+            greska(n)
+            return False
+    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+        greska(n)
+        return False
+    n.djeca[2].svojstva["tipovi"]
+    podaci_globalnog = tablica_znakova.get_root().testiraj(n.djeca[1].kod)
+    if podaci_globalnog:
+        globalni_tip = podaci.get("tip")
+        if not globalni_tip.startswith("funkcija void  "):
+            greska(n)
+            return False
+        if globalni_tip.split()[-1] != n.djeca[0].svojstva["tip"]:
+            greska(n)
+            return False
+        podaci_globalnog["isDefined"] = True
+        tablica_znakova.get_root().promjena(n.djeca[1].kod,podaci_globalnog)
+    else:
+        if not podaci:
+            tablica_znakova.dodajZnak(n.djeca[1].kod, {
+                "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
+                "l-value": 0,
+                "isDefined": True
+            })
+        else:
+            tablica_znakova.dodajZnak(n.djeca[1].kod, {
+                "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
+                "l-value": 0,
+                "isDefined": True
+            })
+    unutar.append(n.djeca[0].svojstva["tip"])
+    if not n.djeca[5].identifikator.provjeri(n.djeca[5]):
+        greska(n)
+        return False
+    unutar.pop()
+    return True
+identifikatori.append(Identifikator(
+    uvj_200,
+    [],
+    prov_200
+))

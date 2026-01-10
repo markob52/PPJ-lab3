@@ -24,6 +24,12 @@ class TablicaZnakova:
     def zatvori_blok(self) -> object:
         return self.parent
 
+    def get_root(self) -> object:
+        tren:TablicaZnakova = self
+        while not tren.parent:
+            tren = tren.parent
+        return tren
+
 '''
 Upute za korištenje:
     Kada se otvara novi blok:
