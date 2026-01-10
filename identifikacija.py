@@ -1,3 +1,5 @@
+import sys
+
 import node
 from tabzn import TablicaZnakova
 class Identifikator:
