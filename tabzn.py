@@ -26,7 +26,7 @@ class TablicaZnakova:
 
     def get_root(self) -> object:
         tren:TablicaZnakova = self
-        while not tren.parent:
+        while tren.parent:
             tren = tren.parent
         return tren
 
