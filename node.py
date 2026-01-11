@@ -18,7 +18,7 @@ class Node:
         for i in range(len(identifikatori)):
             if identifikatori[i].uvijet_identifikacije(self):
                 self.identifikator = identifikatori[i].copy()
-                sys.stderr.write(f"identificiran: {i+1}\n")
+                #sys.stderr.write(f"identificiran: {i+1}\n")
                 self.identifikator.id = i
                 return
         sys.stderr.write(f"greska tijekom identifikacije\n")
@@ -50,7 +50,7 @@ def parse_tree(linije: list[str],identifikatori) -> Node:
             indent +=1
         tren_izraz = linija.lstrip(' ').split(' ')
         if len(tren_izraz)==1:
-            tren.dodaj_dijete(Node(tren_izraz[0]))
+            tren.dodaj_djete(Node(tren_izraz[0]))
         else:
             tren.dodaj_djete(Node(tren_izraz[0],False,tren_izraz[1],tren_izraz[2]))
     root.djeca[0].roditelj = None

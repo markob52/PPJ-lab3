@@ -70,17 +70,18 @@ l-izraz ← IDN.l-izraz
 def uvj_1(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.djeca) == 1:
+    if len(n.djeca) != 1:
         return False
     if n.djeca[0].vrijednost != "IDN":
         return False
     return True
 def prov_1(n:node.Node) -> bool:
-    if not tablica_znakova.testiraj(n.djeca[0].kod):
+    podaci = tablica_znakova.testiraj(n.djeca[0].kod)
+    if not podaci:
         greska(n)
         return False
-    n.svojstva["tip"]=n.djeca[0].svojstva["tip"]
-    n.svojstva["l-izraz"]=n.djeca[0].svojstva["l-izraz"]
+    n.svojstva["tip"]=podaci["tip"]
+    n.svojstva["l-izraz"]=podaci["l-izraz"]
     return True
 identifikatori.append(Identifikator(
     uvj_1,
@@ -109,9 +110,6 @@ def prov_2(n:node.Node) -> bool:
             greska(n)
             return False
     except ValueError:
-        greska(n)
-        return False
-    if n.svojstva["vrijednost"] :
         greska(n)
         return False
     n.svojstva["tip"] = "int"
@@ -163,7 +161,7 @@ l-izraz ← 0
 def uvj_4(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.djeca) == 1:
+    if len(n.djeca) != 1:
         return False
     if n.djeca[0].vrijednost !="NIZ_ZNAKOVA":
         return False
@@ -211,13 +209,17 @@ l-izraz ← <izraz>.l-izraz
 def uvj_5(n:node.Node) -> bool:
     if n.vrijednost != '<primarni_izraz>':
         return False
-    if len(n.djeca) != 1:
+    if len(n.djeca) != 3:
         return False
-    if not n.djeca[0].vrijednost =="L_ZAGRADA <izraz> D_ZAGRADA":
+    if not n.djeca[0].vrijednost =="L_ZAGRADA":
+        return False
+    if not n.djeca[1].vrijednost =="<izraz>":
+        return False
+    if not n.djeca[2].vrijednost =="D_ZAGRADA":
         return False
     return True
 def prov_5(n:node.Node) -> bool:
-    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    provjera = n.djeca[1].identifikator.provjera(n.djeca[1])
     if not provjera:
         greska(n)
         return False
@@ -243,13 +245,13 @@ l-izraz ← <primarni_izraz>.l-izraz
 def uvj_6(n:node.Node) -> bool:
     if n.vrijednost != '<postfiks_izraz>':
         return False
-    if len(n.djeca) == 1:
+    if len(n.djeca) != 1:
         return False
     if n.djeca[0].vrijednost != "<primarni_izraz>":
         return False
     return True
 def prov_6(n:node.Node) -> bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -287,18 +289,23 @@ def uvj_7(n:node.Node) -> bool:
         return False
     return True
 def prov_7(n:node.Node) -> bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not n.djeca[0].svojstva["tip"].startswith("niz_"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
-    if check_impl(n.djeca[2].svojstva["tip"],"int"):
+    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
         greska(n)
         return False
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"][len("niz_"):]
+    if not n.djeca[0].svojstva["tip"][len("niz_"):].startswith("const_"):
+        n.svojstva["l-izraz"] = 1
+    else:
+        n.svojstva["l-izraz"] = 0
     return True
 identifikatori.append(Identifikator(
     uvj_7,
@@ -323,13 +330,13 @@ def uvj_8(n:node.Node) -> bool:
         return False
     elif n.djeca[0].vrijednost != "<postfiks_izraz>":
         return False
-    elif n.djeca[0].vrijednost != "L_ZAGRADA:":
+    elif n.djeca[1].vrijednost != "L_ZAGRADA":
         return False
-    elif n.djeca[0].vrijednost != "D_ZAGRADA:":
+    elif n.djeca[2].vrijednost != "D_ZAGRADA":
         return False
     return True
 def prov_8(n:node.Node) -> bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -341,7 +348,7 @@ def prov_8(n:node.Node) -> bool:
     if not n.djeca[0].svojstva["tip"].startswith("funkcija void  "):
         greska(n)
         return False
-    n.svojstva["tip"] = n.djeca[0].svojstva["tip"].strip("funkcija void  ")
+    n.svojstva["tip"] = n.djeca[0].svojstva["tip"][len("funkcija void  "):]
     n.svojstva["l-izraz"] = 0
     return True
 
@@ -377,11 +384,11 @@ def uvj_9(n:node.Node) -> bool:
         return False
     return True
 def prov_9(n:node.Node) -> bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
-    provjera = n.djeca[2].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[2].identifikator.provjera(n.djeca[2])
     if not provjera:
         greska(n)
         return False
@@ -389,7 +396,7 @@ def prov_9(n:node.Node) -> bool:
     #<postfiks_izraz>.tip = funkcija(params → pov) i redom po elementima
     #arg-tip iz <lista_argumenata>.tipovi i param-tip iz params vrijedi
     #arg-tip ∼ param-tip
-    lista_parametara = n.djeca[0].tip.strip("funkcija ").split()[:-1]
+    lista_parametara = n.djeca[0].svojstva["tip"][len("funkcija "):].split()[:-1]
     lista_argumenata = n.djeca[2].svojstva["tipovi"]
     if len(lista_argumenata) == len(lista_parametara):
         for i in range(len(lista_parametara)):
@@ -400,7 +407,7 @@ def prov_9(n:node.Node) -> bool:
         greska(n)
         return False
 
-    pov = n.djeca[0].tip.split()[-1]
+    pov = n.djeca[0].svojstva["tip"].split()[-1]
     n.svojstva["tip"] = pov
     n.svojstva["l-izraz"] = 0
     return True
@@ -429,7 +436,7 @@ def uvj_10(n:node.Node) -> bool:
         return False
     return True
 def prov_10(n:node.Node) -> bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if n.djeca[0].svojstva["l-izraz"] != 1:
@@ -462,7 +469,7 @@ def uvj_11(n:node.Node) -> bool:
         return False
     return True
 def prov_11(n:node.Node) -> bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tipovi"] = [n.djeca[0].svojstva["tip"]]
@@ -486,7 +493,7 @@ def uvj_12(n:node.Node)->bool:
         return False
     elif len(n.djeca)!=3:
         return False
-    elif len(n.djeca[0].vrijednost)!="<lista_argumenata>":
+    elif n.djeca[0].vrijednost!="<lista_argumenata>":
         return False
     elif n.djeca[1].vrijednost!="ZAREZ":
         return False
@@ -494,10 +501,10 @@ def uvj_12(n:node.Node)->bool:
         return False
     return True
 def prov_12(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     n.svojstva["tipovi"] = n.djeca[0].svojstva["tipovi"] + [n.djeca[2].svojstva["tip"]]
@@ -521,11 +528,11 @@ def uvj_13(n:node.Node)->bool:
         return False
     elif len(n.djeca) != 1:
         return False
-    if n.djeca[0].vrijednost != "<postfix_izraz>":
+    if n.djeca[0].vrijednost != "<postfiks_izraz>":
         return False
     return True
 def prov_13(n:node.Node) -> bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -558,7 +565,7 @@ def uvj_14(n:node.Node) -> bool:
         return False
     return True
 def prov_14(n:node.Node)->bool:
-    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    provjera = n.djeca[1].identifikator.provjera(n.djeca[1])
     if not provjera:
         greska(n)
         return False
@@ -597,11 +604,11 @@ def uvj_15(n:node.Node) -> bool:
         return False
     return True
 def prov_15(n:node.Node)->bool:
-    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    provjera = n.djeca[1].identifikator.provjera(n.djeca[1])
     if not provjera:
         greska(n)
         return False
-    if not check_impl(n.djeca[1].tip, "int"):
+    if not check_impl(n.djeca[1].svojstva["tip"], "int"):
         greska(n)
         return False
     n.svojstva["tip"] = "int"
@@ -619,8 +626,8 @@ identifikatori.append(Identifikator(
 '''
 def uvj_16(n:node.Node)->bool:
     if n.vrijednost != '<unarni_operator>':
-        return True
-    return False
+        return False
+    return True
 def prov_16(n:node.Node)->bool:
     return True
 
@@ -646,7 +653,7 @@ def uvj_17(n:node.Node)->bool:
         return False
     return True
 def prov_17(n:node.Node)->bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -682,10 +689,10 @@ def uvj_18(n:node.Node)->bool:
         return False
     return True
 def prov_18(n:node.Node)->bool:
-    if not n.djeca[2].identifikator.provjeri(n.djeca[1]):
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
-    if not n.djeca[3].identifikator.provjeri(n.djeca[3]):
+    if not n.djeca[3].identifikator.provjera(n.djeca[3]):
         greska(n)
         return False
     if (not check_impl(n.djeca[3].svojstva["tip"],n.djeca[1].svojstva["tip"])) or (not n.djeca[1].svojstva["tip"]=='char' and n.djeca[3].svojstva["tip"]=='int') :
@@ -740,13 +747,13 @@ def uvj_20(n:node.Node) -> bool:
         return False
     elif len(n.djeca)!= 2:
         return False
-    elif n.djeca[0].vrijednost != "<KR_CONST>":
+    elif n.djeca[0].vrijednost != "KR_CONST":
         return False
     elif n.djeca[1].vrijednost != "<specifikator_tipa>":
         return False
     return True
 def prov_20(n:node.Node)->bool:
-    provjera = n.djeca[1].identifikator.provjeri(n.djeca[1])
+    provjera = n.djeca[1].identifikator.provjera(n.djeca[1])
     if not provjera:
         greska(n)
         return False
@@ -772,7 +779,7 @@ def uvj_21(n:node.Node)->bool:
         return False
     elif len(n.djeca)!= 1:
         return False
-    elif n.djeca[0].vrijednost != "<KR_VOID>":
+    elif n.djeca[0].vrijednost != "KR_VOID":
         return False
     return True
 def prov_21(n:node.Node)->bool:
@@ -794,7 +801,7 @@ def uvj_22(n:node.Node)->bool:
         return False
     elif len(n.djeca)!= 1:
         return False
-    elif n.djeca[0].vrijednost != "<KR_CHAR>":
+    elif n.djeca[0].vrijednost != "KR_CHAR":
         return False
     return True
 def prov_22(n:node.Node)->bool:
@@ -844,7 +851,7 @@ def uvj_24(n:node.Node)->bool:
         return False
     return True
 def prov_24(n:node.Node)->bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -880,13 +887,13 @@ def uvj_25(n:node.Node)->bool:
         return False
     return True
 def prov_25(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -918,7 +925,7 @@ def uvj_26(n:node.Node)->bool:
         return False
     return True
 def prov_26(n:node.Node)->bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[1])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -953,13 +960,13 @@ def uvj_27(n:node.Node)->bool:
         return False
     return True
 def prov_27(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -991,7 +998,7 @@ def uvj_28(n:node.Node)->bool:
         return False
     return True
 def prov_28(n:node.Node)->bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -1027,13 +1034,13 @@ def uvj_29(n:node.Node)->bool:
         return False
     return True
 def prov_29(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -1064,7 +1071,7 @@ def uvj_30(n:node.Node)->bool:
         return False
     return True
 def prov_30(n:node.Node)->bool:
-    provjera = n.djeca[0].identifikator.provjeri(n.djeca[0])
+    provjera = n.djeca[0].identifikator.provjera(n.djeca[0])
     if not provjera:
         greska(n)
         return False
@@ -1100,13 +1107,13 @@ def uvj_31(n:node.Node)->bool:
         return False
     return True
 def prov_31(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -1137,7 +1144,7 @@ def uvj_32(n:node.Node)->bool:
         return False
     return True
 def prov_32(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1173,12 +1180,12 @@ def uvj_33(n:node.Node)->bool:
         return False
     return True
 def prov_33(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -1209,7 +1216,7 @@ def uvj_34(n:node.Node)->bool:
         return False
     return True
 def prov_34(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1243,12 +1250,12 @@ def uvj_35(n:node.Node)->bool:
         return False
     return True
 def prov_35(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -1279,7 +1286,7 @@ def uvj_36(n:node.Node)->bool:
         return False
     return True
 def prov_36(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1314,13 +1321,13 @@ def uvj_37(n:node.Node)->bool:
         return False
     return True
 def prov_37(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -1351,7 +1358,7 @@ def uvj_38(n:node.Node)->bool:
         return False
     return True
 def prov_38(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1387,13 +1394,13 @@ def uvj_39(n:node.Node)->bool:
         return False
     return True
 def prov_39(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -1425,7 +1432,7 @@ def uvj_40(n:node.Node)->bool:
         return False
     return True
 def prov_40(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1461,13 +1468,13 @@ def uvj_41(n:node.Node)->bool:
         return False
     return True
 def prov_41(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if not check_impl(n.djeca[0].svojstva["tip"],"int"):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"],"int"):
@@ -1498,7 +1505,7 @@ def uvj_42(n:node.Node)->bool:
         return False
     return True
 def prov_42(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1533,16 +1540,16 @@ def uvj_43(n:node.Node)->bool:
         return False
     return True
 def prov_43(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if not check_impl(n.djeca[0].svojstva["tip"],"int"):
+    if not n.djeca[0].svojstva["l-izraz"] == 1:
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
-    if not check_impl(n.djeca[2].svojstva["tip"],"int"):
+    if not check_impl(n.djeca[2].svojstva["tip"],n.djeca[0].svojstva["tip"]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1571,7 +1578,7 @@ def uvj_44(n:node.Node)->bool:
         return False
     return True
 def prov_44(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1604,10 +1611,10 @@ def uvj_45(n:node.Node)->bool:
         return False
     return True
 def prov_45(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[2].svojstva["tip"]
@@ -1639,11 +1646,12 @@ def uvj_100(n:node.Node)->bool:
         return False
     return True
 def prov_100(n:node.Node)->bool:
-    tablica_znakova.otvori_blok()
-    if not n.djeca[1].identifikator.provjeri(n):
+    global tablica_znakova
+    tablica_znakova = tablica_znakova.otvori_blok()
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
-    tablica_znakova.zatvori_blok()
+    tablica_znakova = tablica_znakova.zatvori_blok()
     return True
 identifikatori.append(Identifikator(
     uvj_100,
@@ -1671,14 +1679,17 @@ def uvj_101(n:node.Node)->bool:
         return False
     return True
 def prov_101(n:node.Node)->bool:
-    tablica_znakova.otvori_blok()
-    if not n.djeca[1].identifikator.provjeri(n):
+    global tablica_znakova
+    tablica_znakova = tablica_znakova.otvori_blok()
+
+
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
-    tablica_znakova.zatvori_blok()
+    tablica_znakova = tablica_znakova.zatvori_blok()
     return True
 identifikatori.append(Identifikator(
     uvj_101,
@@ -1700,7 +1711,7 @@ def uvj_102(n:node.Node) -> bool:
         return False
     return True
 def prov_102(n:node.Node) -> bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     return True
@@ -1726,10 +1737,10 @@ def uvj_103(n:node.Node) -> bool:
         return False
     return True
 def prov_103(n:node.Node) -> bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if not n.djeca[1].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
     return True
@@ -1752,7 +1763,7 @@ def uvj_104(n:node.Node)->bool:
         return False
     return True
 def prov_104(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     return True
@@ -1800,7 +1811,7 @@ def uvj_106(n:node.Node)->bool:
         return False
     return True
 def prov_106(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tip"] = n.djeca[0].svojstva["tip"]
@@ -1818,7 +1829,7 @@ identifikatori.append(Identifikator(
 3. provjeri(<naredba>)
 '''
 def uvj_107(n:node.Node)->bool:
-    if n.vrijednost != "<izraz_naredba>":
+    if n.vrijednost != "<naredba_grananja>":
         return False
     if len(n.djeca) != 5:
         return False
@@ -1834,12 +1845,12 @@ def uvj_107(n:node.Node)->bool:
         return False
     return True
 def prov_107(n:node.Node)->bool:
-    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"], "int"):
         return False
-    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+    if not n.djeca[4].identifikator.provjera(n.djeca[4]):
         greska(n)
         return False
     return True
@@ -1878,16 +1889,16 @@ def uvj_108(n:node.Node)->bool:
         return False
     return True
 def prov_108(n:node.Node)->bool:
-    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"], "int"):
         greska(n)
         return False
-    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+    if not n.djeca[4].identifikator.provjera(n.djeca[4]):
         greska(n)
         return False
-    if n.djeca[6].identifikator.provjeri(n.djeca[6]):
+    if not n.djeca[6].identifikator.provjera(n.djeca[6]):
         greska(n)
         return False
     return True
@@ -1905,7 +1916,7 @@ identifikatori.append(Identifikator(
 
 '''
 def uvj_109(n:node.Node)->bool:
-    if n.vrijednost != "<naredba_grananja>":
+    if n.vrijednost != "<naredba_petlje>":
         return False
     if len(n.djeca) != 5:
         return False
@@ -1921,14 +1932,14 @@ def uvj_109(n:node.Node)->bool:
         return False
     return True
 def prov_109(n:node.Node)->bool:
-    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if not check_impl(n.djeca[2].svojstva["tip"], "int"):
         greska(n)
         return False
     unutar.append('loop')
-    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+    if not n.djeca[4].identifikator.provjera(n.djeca[4]):
         greska(n)
         return False
     unutar.pop()
@@ -1949,7 +1960,7 @@ D_ZAGRADA <naredba>
 
 '''
 def uvj_110(n:node.Node)->bool:
-    if n.vrijednost != "<naredba_grananja>":
+    if n.vrijednost != "<naredba_petlje>":
         return False
     if len(n.djeca) != 7:
         return False
@@ -1969,17 +1980,17 @@ def uvj_110(n:node.Node)->bool:
         return False
     return True
 def prov_110(n:node.Node)->bool:
-    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
-    if n.djeca[3].identifikator.provjeri(n.djeca[3]):
+    if not n.djeca[3].identifikator.provjera(n.djeca[3]):
         greska(n)
         return False
     if not check_impl(n.djeca[3].svojstva["tip"], "int"):
         greska(n)
         return False
     unutar.append("loop")
-    if n.djeca[6].identifikator.provjeri(n.djeca[7]):
+    if not n.djeca[6].identifikator.provjera(n.djeca[6]):
         greska(n)
         return False
     unutar.pop()
@@ -2000,7 +2011,7 @@ identifikatori.append(Identifikator(
 5. provjeri(<naredba>)
 '''
 def uvj_110(n:node.Node)->bool:
-    if n.vrijednost != "<naredba_grananja>":
+    if n.vrijednost != "<naredba_petlje>":
         return False
     if len(n.djeca) != 7:
         return False
@@ -2020,20 +2031,20 @@ def uvj_110(n:node.Node)->bool:
         return False
     return True
 def prov_110(n:node.Node)->bool:
-    if n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
-    if n.djeca[3].identifikator.provjeri(n.djeca[3]):
+    if not n.djeca[3].identifikator.provjera(n.djeca[3]):
         greska(n)
         return False
     if not check_impl(n.djeca[3].svojstva["tip"], "int"):
         greska(n)
         return False
-    if n.djeca[4].identifikator.provjeri(n.djeca[4]):
+    if not n.djeca[4].identifikator.provjera(n.djeca[4]):
         greska(n)
         return False
     unutar.append("loop")
-    if n.djeca[6].identifikator.provjeri(n.djeca[6]):
+    if n.djeca[6].identifikator.provjera(n.djeca[6]):
         greska(n)
         return False
     unutar.pop()
@@ -2049,7 +2060,7 @@ identifikatori.append(Identifikator(
 1. naredba se nalazi unutar petlje ili unutar bloka koji je ugnijeˇzden u petlji
 '''
 def uvj_111(n:node.Node)->bool:
-    if n.vrijednost != "<izraz_naredba>":
+    if n.vrijednost != "<naredba_skoka>":
         return False
     if len(n.djeca) != 2:
         return False
@@ -2060,6 +2071,7 @@ def uvj_111(n:node.Node)->bool:
     return True
 def prov_111(n:node.Node)->bool:
     if not unutar[-1] == "loop":
+        greska(n)
         return False
     return True
 identifikatori.append(Identifikator(
@@ -2074,7 +2086,7 @@ identifikatori.append(Identifikator(
 1. naredba se nalazi unutar funkcije tipa funkcija(params → void)
 '''
 def uvj_112(n:node.Node)->bool:
-    if n.vrijednost != "<izraz_naredba>":
+    if n.vrijednost != "<naredba_skoka>":
         return False
     if len(n.djeca) != 2:
         return False
@@ -2085,6 +2097,7 @@ def uvj_112(n:node.Node)->bool:
     return True
 def prov_112(n:node.Node)->bool:
     if not unutar[-1] == "void":
+        greska(n)
         return False
     return True
 identifikatori.append(Identifikator(
@@ -2099,7 +2112,7 @@ identifikatori.append(Identifikator(
 <izraz>.tip ∼ pov
 '''
 def uvj_113(n:node.Node)->bool:
-    if n.vrijednost != "<izraz_naredba>":
+    if n.vrijednost != "<naredba_skoka>":
         return False
     if len(n.djeca) != 3:
         return False
@@ -2111,7 +2124,17 @@ def uvj_113(n:node.Node)->bool:
         return False
     return True
 def prov_113(n:node.Node)->bool:
-    if not (unutar[-1] != "void" and unutar[-1] != "loop") or not check_impl(n.djeca[1].svojstva["tip"], unutar[-1]):
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
+        greska(n)
+        return False
+    tren = len(unutar)-1
+    while unutar[tren]=="loop":
+        tren-=1
+    if not (unutar[tren] != "void"):
+        greska(n)
+        return False
+    if not check_impl(n.djeca[1].svojstva["tip"], unutar[-1]):
+        greska(n)
         return False
     return True
 identifikatori.append(Identifikator(
@@ -2133,7 +2156,7 @@ def uvj_114(n:node.Node)->bool:
         return False
     return True
 def prov_114(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjera(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     return True
@@ -2159,10 +2182,10 @@ def uvj_115(n:node.Node)->bool:
         return False
     return True
 def prov_115(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if n.djeca[1].identifikator.provjeri(n.djeca[1]):
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
     return True
@@ -2188,7 +2211,7 @@ def uvj_116(n:node.Node)->bool:
         return False
     return True
 def prov_116(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjera(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     return True
@@ -2257,13 +2280,13 @@ def prov_200(n:node.Node)->bool:
         if not podaci:
             tablica_znakova.dodajZnak(n.djeca[1].kod, {
                 "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
-                "l-value": 0,
+                "l-izraz": 0,
                 "isDefined": True
             })
         else:
             tablica_znakova.dodajZnak(n.djeca[1].kod, {
                 "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
-                "l-value": 0,
+                "l-izraz": 0,
                 "isDefined": True
             })
     unutar.append(n.djeca[0].svojstva["tip"])
@@ -2310,7 +2333,8 @@ def uvj_200(n:node.Node)-> bool:
         return False
     return True
 def prov_200(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    global tablica_znakova
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if n.djeca[0].svojstva["tip"].startswith("const_"):
@@ -2333,7 +2357,7 @@ def prov_200(n:node.Node)->bool:
             return False
 
         ret = podaci["tip"].strip("funkcija ").split()[-1]
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[3].identifikator.provjera(n.djeca[3]):
         greska(n)
         return False
 
@@ -2352,26 +2376,29 @@ def prov_200(n:node.Node)->bool:
         if not podaci:
             tablica_znakova.dodajZnak(n.djeca[1].kod, {
                 "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
-                "l-value": 0,
+                "l-izraz": 0,
                 "isDefined": True
             })
         else:
             tablica_znakova.dodajZnak(n.djeca[1].kod, {
                 "tip": "funkcija void  " + n.djeca[0].svojstva["tip"],
-                "l-value": 0,
+                "l-izraz": 0,
                 "isDefined": True
             })
     unutar.append(n.djeca[0].svojstva["tip"])
-    tablica_znakova.otvori_blok()
+    tablica_znakova = tablica_znakova.otvori_blok()
+
+
     for i in range(len(n.djeca[3].svojstva["imena"])):
         tablica_znakova.dodajZnak(n.djeca[3].svojstva["imena"][i], {
             "tip":n.djeca[3].svojstva["tipovi"][i],
+            "l-izraz": 0,
             "jeArgument": True,
         })
-    if not n.djeca[5].identifikator.provjeri(n.djeca[5]):
+    if not n.djeca[5].identifikator.provjera(n.djeca[5]):
         greska(n)
         return False
-    tablica_znakova.zatvori_blok()
+    tablica_znakova = tablica_znakova.zatvori_blok()
     unutar.pop()
     return True
 identifikatori.append(Identifikator(
@@ -2397,7 +2424,7 @@ def uvj_201(n:node.Node):
         return False
     return True
 def prov_201(n:node.Node):
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tipovi"] = [ n.djeca[0].svojstva["tip"] ]
@@ -2430,17 +2457,17 @@ def uvj_201(n:node.Node):
         return False
     return True
 def prov_201(n:node.Node):
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if n.djeca[2].svojstva["ime"] in n.djeca[0].svojstva["imena"]:
         greska(n)
         return False
-    n.svojstva["tipovi"] = n.djeca[0].svojstva["tipovi"] + [ n.djeca[0].svojstva["tip"] ]
-    n.svojstva["imena"] = n.djeca[0].svojstva["imena"] + [ n.djeca[0].svojstva["ime"] ]
+    n.svojstva["tipovi"] = n.djeca[0].svojstva["tipovi"] + [ n.djeca[2].svojstva["tip"] ]
+    n.svojstva["imena"] = n.djeca[0].svojstva["imena"] + [ n.djeca[2].svojstva["ime"] ]
     return True
 identifikatori.append(Identifikator(
     uvj_201,
@@ -2467,7 +2494,7 @@ def uvj_202(n:node.Node)->bool:
         return False
     return True
 def prov_202(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if n.djeca[0].svojstva["tip"] == "void":
@@ -2504,7 +2531,7 @@ def uvj_203(n:node.Node)->bool:
         return False
     return True
 def prov_203(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     if n.djeca[0].svojstva["tip"] == "void":
@@ -2531,7 +2558,7 @@ def uvj_204(n:node.Node)->bool:
         return False
     return True
 def prov_204(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     return True
@@ -2557,10 +2584,10 @@ def uvj_205(n:node.Node)->bool:
         return False
     return True
 def prov_205(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if n.djeca[1].identifikator.provjeri(n.djeca[1]):
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
     return True
@@ -2579,6 +2606,8 @@ identifikatori.append(Identifikator(
 def uvj_206(n:node.Node)->bool:
     if n.vrijednost != "<deklaracija>":
         return False
+    if len(n.djeca) != 3:
+        return False
     if n.djeca[0].vrijednost != "<ime_tipa>":
         return False
     if n.djeca[1].vrijednost != "<lista_init_deklaratora>":
@@ -2587,11 +2616,11 @@ def uvj_206(n:node.Node)->bool:
         return False
     return True
 def prov_206(n:node.Node)->bool:
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.djeca[1].svojstva["ntip"] = n.djeca[0].svojstva["tip"]
-    if n.djeca[1].identifikator.provjeri(n.djeca[1]):
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
     return True
@@ -2616,7 +2645,7 @@ def uvj_207(n:node.Node)->bool:
     return True
 def prov_207(n:node.Node)->bool:
     n.djeca[0].svojstva["ntip"] = n.svojstva["ntip"]
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     return True
@@ -2648,11 +2677,11 @@ def uvj_208(n:node.Node):
     return True
 def prov_208(n:node.Node):
     n.djeca[0].svojstva["ntip"] = n.svojstva["ntip"]
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.djeca[2].svojstva["ntip"] = n.svojstva["ntip"]
-    if not n.djeca[2].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     return True
@@ -2680,9 +2709,11 @@ def uvj_209(n:node.Node)->bool:
     return True
 def prov_209(n:node.Node)->bool:
     n.djeca[0].svojstva["ntip"] = n.svojstva["ntip"]
-    if n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
+        greska(n)
         return False
     if n.djeca[0].svojstva["tip"].startswith("const") or n.djeca[0].svojstva["tip"].startswith("niz_const"):
+        greska(n)
         return False
     return True
 identifikatori.append(Identifikator(
@@ -2718,10 +2749,10 @@ def uvj_210(n:node.Node)->bool:
     return True
 def prov_210(n:node.Node)->bool:
     n.djeca[0].svojstva["ntip"] = n.svojstva["ntip"]
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if n.djeca[0].svojstva["tip"].startswith("niz"):
@@ -2777,7 +2808,10 @@ def prov_211(n:node.Node)->bool:
     if n.djeca[0].kod in tablica_znakova.content.keys():
         greska(n)
         return False
-    tablica_znakova.dodajZnak(n.djeca[0].kod,n.svojstva["ntip"])
+    tablica_znakova.dodajZnak(n.djeca[0].kod,{
+        "tip": n.svojstva["ntip"],
+        "l-izraz": 1
+    })
     n.svojstva["tip"] = n.svojstva["ntip"]
     return True
 identifikatori.append(Identifikator(
@@ -2824,7 +2858,10 @@ def prov_212(n:node.Node)->bool:
         greska(n)
         return False
 
-    tablica_znakova.dodajZnak(n.djeca[0].kod,"niz_"+n.svojstva["ntip"])
+    tablica_znakova.dodajZnak(n.djeca[0].kod,{
+        "tip": "niz_"+n.svojstva["ntip"],
+        "l-izraz": 1
+    })
     n.svojstva["tip"] = "niz_"+n.svojstva["ntip"]
     return True
 identifikatori.append(Identifikator(
@@ -2862,7 +2899,8 @@ def prov_213(n:node.Node)->bool:
            return False
     else:
         tablica_znakova.dodajZnak(n.djeca[0].kod,{
-            "tip": "funkcija void  "+n.svojstva["ntip"]
+            "tip": "funkcija void  "+n.svojstva["ntip"],
+            "l-izraz": 1
         })
     n.svojstva["tip"]="funkcija void  "+n.svojstva["ntip"]
     return True
@@ -2889,26 +2927,27 @@ def uvj_214(n:node.Node)->bool:
         return False
     if n.djeca[0].vrijednost != "IDN":
         return False
-    if n.djeca[1].vrijednost != "<lista_parametara>":
+    if n.djeca[1].vrijednost != "L_ZAGRADA":
         return False
-    if n.djeca[2].vrijednost != "KR_VOID":
+    if n.djeca[2].vrijednost != "<lista_parametara>":
         return False
     if n.djeca[3].vrijednost != "D_ZAGRADA":
         return False
     return True
 def prov_214(n:node.Node)->bool:
-    if not n.djeca[1].identifikator.provjeri(n.djeca[1]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     if n.djeca[0].kod in tablica_znakova.content.keys():
-       if tablica_znakova.content[n.djeca[0].kod]["tip"] != "funkcija "+" ".join(n.djeca[1].svojstva["tipovi"])+"  "+n.svojstva["ntip"]:
+       if tablica_znakova.content[n.djeca[0].kod]["tip"] != "funkcija "+" ".join(n.djeca[2].svojstva["tipovi"])+"  "+n.svojstva["ntip"]:
            greska(n)
            return False
     else:
         tablica_znakova.dodajZnak(n.djeca[0].kod,{
-            "tip": "funkcija "+" ".join(n.djeca[1].svojstva["tipovi"])+"  "+n.svojstva["ntip"]
+            "tip": "funkcija "+" ".join(n.djeca[2].svojstva["tipovi"])+"  "+n.svojstva["ntip"],
+            "l-izraz": 1
         })
-    n.svojstva["tip"]="funkcija "+" ".join(n.djeca[1].svojstva["tipovi"])+"  "+n.svojstva["ntip"]
+    n.svojstva["tip"]="funkcija "+" ".join(n.djeca[2].svojstva["tipovi"])+"  "+n.svojstva["ntip"]
     return True
 identifikatori.append(Identifikator(
     uvj_214,
@@ -2935,10 +2974,10 @@ def uvj_215(n:node.Node)->bool:
         return False
     return True
 def prov_215(n:node.Node)->bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if n.djeca[0].tip == "niz_const_char": #je_li_niz(n.djeca[0])
+    if n.djeca[0].svojstva["tip"] == "niz_const_char": #je_li_niz(n.djeca[0])
         n.svojstva["br-elem"] = n.djeca[0].svojstva["length"] + 1
         n.svojstva["tipovi"] = ["char" for i in range(n.djeca[0].svojstva["length"] + 1)]
         identifikatori.append(Identifikator(
@@ -2979,7 +3018,7 @@ def uvj_216(n:node.Node) -> bool:
         return False
     return True
 def prov_216(n: node.Node) -> bool:
-    if not n.djeca[1].identifikator.provjeri(n.djeca[1]):
+    if not n.djeca[1].identifikator.provjera(n.djeca[1]):
         greska(n)
         return False
     n.svojstva["tipovi"] = n.djeca[1].svojstva["tipovi"]
@@ -3007,7 +3046,7 @@ def uvj_217(n:node.Node) -> bool:
         return False
     return True
 def prov_217(n: node.Node) -> bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
     n.svojstva["tipovi"] = [n.djeca[0].svojstva["tip"]]
@@ -3040,10 +3079,10 @@ def uvj_218(n:node.Node) -> bool:
         return False
     return True
 def prov_218(n: node.Node) -> bool:
-    if not n.djeca[0].identifikator.provjeri(n.djeca[0]):
+    if not n.djeca[0].identifikator.provjera(n.djeca[0]):
         greska(n)
         return False
-    if not n.djeca[2].identifikator.provjeri(n.djeca[2]):
+    if not n.djeca[2].identifikator.provjera(n.djeca[2]):
         greska(n)
         return False
     n.svojstva["tipovi"] = n.djeca[0].svojstva["tipovi"] + [n.djeca[2].svojstva["tip"]]
@@ -3054,3 +3093,20 @@ identifikatori.append(Identifikator(
     [],
     prov_218
 ))
+
+def finalna_provjera():
+    # 1 provjera
+    podaci = tablica_znakova.get_root().testiraj("main")
+    if not podaci:
+        print("main")
+        sys.exit(0)
+    if podaci.content["tip"] != "funkcija void  int":
+        print("main")
+        sys.exit(0)
+
+    # 2 provjera
+    root = tablica_znakova.get_root()
+    tren
+    for key in root.content.keys():
+        if root.content[key]["tip"].startswith("funkcija"):
+            if "isDefined" in root.content

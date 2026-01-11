@@ -22,6 +22,7 @@ class TablicaZnakova:
     def otvori_blok(self) -> object:
         return TablicaZnakova(self)
     def zatvori_blok(self) -> object:
+
         return self.parent
 
     def get_root(self) -> object:
