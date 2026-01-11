@@ -2,6 +2,7 @@ import sys
 
 import node
 from tabzn import TablicaZnakova
+
 class Identifikator:
     def __init__(self, uvijet_identifikacije, svojstva:list, provjeri):
         self.uvijet_identifikacije_ = uvijet_identifikacije
@@ -372,15 +373,15 @@ arg-tip iz <lista_argumenata>.tipovi i param-tip iz params vrijedi arg-tip
 def uvj_9(n:node.Node) -> bool:
     if n.vrijednost != '<postfiks_izraz>':
         return False
-    elif len(n.djeca) != 3:
+    elif len(n.djeca) != 4:
         return False
     elif n.djeca[0].vrijednost != "<postfiks_izraz>":
         return False
-    elif n.djeca[0].vrijednost != "L_ZAGRADA:":
+    elif n.djeca[1].vrijednost != "L_ZAGRADA":
         return False
-    elif n.djeca[0].vrijednost != "<lista_argumentata>":
+    elif n.djeca[2].vrijednost != "<lista_argumenata>":
         return False
-    elif n.djeca[0].vrijednost != "D_ZAGRADA:":
+    elif n.djeca[3].vrijednost != "D_ZAGRADA":
         return False
     return True
 def prov_9(n:node.Node) -> bool:
@@ -489,7 +490,7 @@ tipovi ← <lista_argumenata>.tipovi + [ <izraz_pridruzivanja>.tip ]
 2. provjeri(<izraz_pridruzivanja>)
 '''
 def uvj_12(n:node.Node)->bool:
-    if n.vrijednost=="<lista_argumenata>":
+    if n.vrijednost!="<lista_argumenata>":
         return False
     elif len(n.djeca)!=3:
         return False
@@ -497,7 +498,7 @@ def uvj_12(n:node.Node)->bool:
         return False
     elif n.djeca[1].vrijednost!="ZAREZ":
         return False
-    elif n.djeca[2].vrijednost=="<izraz_pridruzivanja>":
+    elif n.djeca[2].vrijednost!="<izraz_pridruzivanja>":
         return False
     return True
 def prov_12(n:node.Node)->bool:
@@ -2207,7 +2208,7 @@ def uvj_116(n:node.Node)->bool:
         return False
     if len(n.djeca) != 1:
         return False
-    if n.djeca[0].vrijednost not in ["<definicija_funkcije>", "<vanjska_deklaracija>"]:
+    if n.djeca[0].vrijednost not in ["<definicija_funkcije>", "<deklaracija>"]:
         return False
     return True
 def prov_116(n:node.Node)->bool:
@@ -2664,7 +2665,7 @@ identifikatori.append(Identifikator(
 <init_deklarator>.ntip ← <lista_init_deklaratora>1.ntip
 '''
 def uvj_208(n:node.Node):
-    if n.vrijednost != "<lista_parametara>":
+    if n.vrijednost != "<lista_init_deklaratora>":
         return False
     elif len(n.djeca) !=3:
         return False
